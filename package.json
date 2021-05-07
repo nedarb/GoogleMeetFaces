@@ -9,6 +9,9 @@
     "package": "yarn dev && zip -r dist.zip dist",
     "sync:version": "node scripts/syncVersion.js"
   },
+  "engines": {
+    "node": ">=12 <16.0"
+  },
   "author": "Braden Hays",
   "license": "MIT",
   "devDependencies": {
