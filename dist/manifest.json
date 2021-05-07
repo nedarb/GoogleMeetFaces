@@ -1,0 +1,23 @@
+{
+  "manifest_version": 2,
+  "name": "Google Meet Faces",
+  "description": "Chrome extension to track Google meet video stream using picture-in-picture",
+  "version": "0.2.3",
+  "browser_action": {
+    "default_icon": "icon16.png",
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://meet.google.com/*"],
+      "js": ["js/contentScript.js"]
+    }
+  ],
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  },
+  "permissions": ["storage", "tabs"],
+  "optional_permissions": []
+}
