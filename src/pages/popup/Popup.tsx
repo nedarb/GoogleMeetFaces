@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { browser } from "webextension-polyfill-ts";
 import { bindToTabSendMessage } from "../../shared/bindings";
-import { IContentScript, Participant } from "../../shared/IContentScript";
+import { ContentScript, Participant } from "../../shared/ContentScript";
 import {
   loadAllSettings,
   saveSetting,
+  Settings,
   SettingsKey,
 } from "../../shared/settings";
 import "./Popup.scss";
@@ -22,7 +23,7 @@ const IconPaths = {
   },
 };
 
-function getCurrentTabProxy(): Promise<IContentScript | undefined> {
+function getCurrentTabProxy(): Promise<ContentScript | undefined> {
   return browser.tabs
     .query({
       active: true,
@@ -32,18 +33,18 @@ function getCurrentTabProxy(): Promise<IContentScript | undefined> {
     .then((tabs) => {
       if (tabs.length === 1) {
         const [tab] = tabs;
-        return bindToTabSendMessage<IContentScript>(tab);
+        return bindToTabSendMessage<ContentScript>(tab);
       }
     });
 }
 
-function getAllTabProxies(): Promise<Array<IContentScript>> {
+function getAllTabProxies(): Promise<Array<ContentScript>> {
   return browser.tabs
     .query({
       url: "https://meet.google.com/*",
     })
     .then((tabs) => {
-      return tabs.map((tab) => bindToTabSendMessage<IContentScript>(tab));
+      return tabs.map((tab) => bindToTabSendMessage<ContentScript>(tab));
     });
 }
 
@@ -68,16 +69,13 @@ export default function Popup() {
   const [participants, setParticipants] = useState<
     Readonly<Array<Participant>>
   >([]);
-  const [includeYou, setIncludeYou] = useState(false);
-  const [isEnabled, setIsEnabled] = useState(false);
-  const [debuggingEnabled, setDebuggingEnabled] = useState(false);
+
+  const [currentSettings, setSettings] = useState<Settings | undefined>();
 
   useEffect(() => {
     async function run() {
       const settings = await loadAllSettings();
-      setIncludeYou(settings.includeYou);
-      setIsEnabled(settings.isEnabled);
-      setDebuggingEnabled(settings.debugging);
+      setSettings(settings);
 
       // make sure the icon is the proper one
       await browser.browserAction.setIcon({
@@ -111,25 +109,20 @@ export default function Popup() {
     );
   };
 
-  const toggleIncludeYou = async () => {
-    await saveSetting(SettingsKey.INCLUDE_YOU, !includeYou);
-    setIncludeYou(!includeYou);
+  const toggleSetting = async (key:SettingsKey) => {
+    const current = currentSettings[key];
+    const next = !current;
+    await saveSetting(key, next);
+    setSettings({...currentSettings, [key]: next});
     await broadcastSettingChange();
-  };
-
-  const toggleDebugging = async () => {
-    await saveSetting(SettingsKey.DEBUGGING, !debuggingEnabled);
-    setDebuggingEnabled(!debuggingEnabled);
-    await broadcastSettingChange();
+    return next;
   };
 
   const toggleEnabled = async () => {
-    await saveSetting(SettingsKey.IS_ENABLED, !isEnabled);
-    setIsEnabled(!isEnabled);
+    const isEnabled = await toggleSetting(SettingsKey.IS_ENABLED);
     await browser.browserAction.setIcon({
-      path: isEnabled ? IconPaths.Disabled : IconPaths.Enabled,
+      path: isEnabled ? IconPaths.Enabled : IconPaths.Disabled,
     });
-    await broadcastSettingChange();
   };
 
   return (
@@ -141,12 +134,12 @@ export default function Popup() {
           Start a new meeting
         </a>
       )}
-      {isBusy && <span>logging in...</span>}
+      {isBusy && <span>loading...</span>}
       <span>
         <input
           id="isEnabled"
           type="checkbox"
-          checked={isEnabled}
+          checked={currentSettings?.isEnabled}
           onChange={() => toggleEnabled()}
         />{" "}
         Enable
@@ -154,18 +147,26 @@ export default function Popup() {
       <span>
         <input
           type="checkbox"
-          checked={includeYou}
-          onChange={() => toggleIncludeYou()}
+          checked={currentSettings?.includeYou}
+          onChange={() => toggleSetting(SettingsKey.INCLUDE_YOU)}
         />{" "}
         Include you in picture-in-picture
       </span>
       <span>
         <input
           type="checkbox"
-          checked={debuggingEnabled}
-          onChange={() => toggleDebugging()}
+          checked={currentSettings?.debugging}
+          onChange={() => toggleSetting(SettingsKey.DEBUGGING)}
         />{" "}
         Debugging mode
+      </span>
+      <span>
+        <input
+          type="checkbox"
+          checked={currentSettings?.highlightNoVideo}
+          onChange={() => toggleSetting(SettingsKey.HIGHLIGHT_WHEN_NO_VIDEO)}
+        />{" "}
+        Highlight when no video
       </span>
     </div>
   );

@@ -1,5 +1,5 @@
 import { VisibilityMonitor } from "./VisibilityMonitor";
-import { IContentScript } from "../shared/IContentScript";
+import { ContentScript } from "../shared/ContentScript";
 import { emit } from "../shared/bindings";
 import { MemoizedSettings } from "./MemoizedSettings";
 import { Poller } from "./Poller";
@@ -21,7 +21,7 @@ if (document.pictureInPictureEnabled) {
 
   // make a poller for when the window is hidden
   const poller = new Poller(async () => {
-    const { isEnabled } = await settings.getSettings();
+    const { isEnabled, highlightNoVideo } = await settings.getSettings();
     if (!VisibilityMonitor.isHidden) {
       // stop polling if window is no longer hidden
       return false;
@@ -34,12 +34,9 @@ if (document.pictureInPictureEnabled) {
     }
 
     // get who is talking
-    const participants = getParticipantsList();
-    const talking = participants.find((p) => p.isTalking);
-    drawText(`Talking: ${talking?.name || "?"}`);
     const next = await findParticipantToShow(settings);
-    if (next || talking) {
-      activatePictureInPicture(next || talking);
+    if (next) {
+      activatePictureInPicture(next);
     }
     return true;
   });
@@ -61,7 +58,7 @@ if (document.pictureInPictureEnabled) {
   });
 
   // expose functionality to the popup/background script
-  emit<IContentScript>({
+  emit<ContentScript>({
     settingsChanged: async () => {
       const currentlyEnabled = (await settings.getSettings()).isEnabled;
       const { isEnabled, debugging } = await settings.reload();

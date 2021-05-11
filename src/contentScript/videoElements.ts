@@ -1,7 +1,7 @@
 import { findAncestor } from "./domUtil";
-import { Participant } from "../shared/IContentScript";
+import { Participant } from "../shared/ContentScript";
 import { MemoizedSettings } from "./MemoizedSettings";
-import { video as talkingVideoElement } from "./textVideoStream";
+import { video as talkingVideoElement, drawText } from "./textVideoStream";
 
 const TALKING_SELECTOR = ".kssMZb,.GskdZ";
 enum VideoElementEventNames {
@@ -22,11 +22,21 @@ const currentlyShowingPip = new WeakSet<HTMLVideoElement>();
 export async function findParticipantToShow(
   settings: Readonly<MemoizedSettings>
 ): Promise<Readonly<Participant> | undefined> {
-  const currentSettings = await settings.getSettings();
+  const { includeYou, highlightNoVideo } = await settings.getSettings();
 
   const allParticipants = getParticipantsList();
+
+  if (highlightNoVideo) {
+    const result = includeYou
+      ? allParticipants.find((p) => p.isTalking)
+      : allParticipants.find((p) => p.isTalking && !p.isYou);
+    if (result) {
+      return result;
+    }
+  }
+
   const participants =
-    currentSettings.includeYou === false && allParticipants.length > 0
+    includeYou === false && allParticipants.length > 0
       ? allParticipants.filter((p) => !p.isYou)
       : allParticipants;
 
@@ -112,7 +122,10 @@ export function getParticipantsList(): Readonly<Array<Participant>> {
       );
 
       const isTalking =
+        // find the blue box around the speaker
         !!participantElement?.querySelector(TALKING_SELECTOR) ||
+        // find the speaking peak meter:
+        !!participantElement?.querySelector(".atLQQ.kssMZb") ||
         videos.some((video) =>
           findParticipantEl(video)?.querySelector(TALKING_SELECTOR)
         );
@@ -183,6 +196,8 @@ export async function activatePictureInPicture(
   if (!video) {
     return;
   }
+
+  drawText(`Talking: ${participant.name || "?"}`);
 
   try {
     // short-circuit if already showing this video
