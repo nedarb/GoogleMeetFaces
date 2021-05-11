@@ -2,10 +2,8 @@ import React, { useEffect, useState } from "react";
 import { browser } from "webextension-polyfill-ts";
 import { bindToTabSendMessage } from "../../shared/bindings";
 import { IContentScript, Participant } from "../../shared/IContentScript";
-import { ACTIVE_TAB_PERMISSION } from "../../shared/permissions";
 import {
   loadAllSettings,
-  loadSetting,
   saveSetting,
   SettingsKey,
 } from "../../shared/settings";
@@ -72,12 +70,14 @@ export default function Popup() {
   >([]);
   const [includeYou, setIncludeYou] = useState(false);
   const [isEnabled, setIsEnabled] = useState(false);
+  const [debuggingEnabled, setDebuggingEnabled] = useState(false);
 
   useEffect(() => {
     async function run() {
       const settings = await loadAllSettings();
       setIncludeYou(settings.includeYou);
       setIsEnabled(settings.isEnabled);
+      setDebuggingEnabled(settings.debugging);
 
       // make sure the icon is the proper one
       await browser.browserAction.setIcon({
@@ -117,6 +117,12 @@ export default function Popup() {
     await broadcastSettingChange();
   };
 
+  const toggleDebugging = async () => {
+    await saveSetting(SettingsKey.DEBUGGING, !debuggingEnabled);
+    setDebuggingEnabled(!debuggingEnabled);
+    await broadcastSettingChange();
+  };
+
   const toggleEnabled = async () => {
     await saveSetting(SettingsKey.IS_ENABLED, !isEnabled);
     setIsEnabled(!isEnabled);
@@ -152,6 +158,14 @@ export default function Popup() {
           onChange={() => toggleIncludeYou()}
         />{" "}
         Include you in picture-in-picture
+      </span>
+      <span>
+        <input
+          type="checkbox"
+          checked={debuggingEnabled}
+          onChange={() => toggleDebugging()}
+        />{" "}
+        Debugging mode
       </span>
     </div>
   );

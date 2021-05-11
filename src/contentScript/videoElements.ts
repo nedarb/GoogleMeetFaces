@@ -1,16 +1,15 @@
 import { findAncestor } from "./domUtil";
 import { Participant } from "../shared/IContentScript";
 import { MemoizedSettings } from "./MemoizedSettings";
+import { video as talkingVideoElement } from "./textVideoStream";
 
-const TALKING_SELECTOR = ".kssMZb";
+const TALKING_SELECTOR = ".kssMZb,.GskdZ";
 enum VideoElementEventNames {
   LEAVE_PIP = "leavepictureinpicture",
 }
 enum ElementDataKey {
   ParticipantId = "meetExtId",
 }
-
-console.log("Google Meet Faces startup");
 
 /**
  * keep a set of video elements that are showing picture-in-picture (should only be length 0-1 but leaving room for API changes in the future)
@@ -50,19 +49,56 @@ export async function findParticipantToShow(
  */
 export function getParticipantsList(): Readonly<Array<Participant>> {
   const videos = Array.from(document.querySelectorAll("video"));
-  const participants: Record<string, Array<HTMLVideoElement>> = {};
+  const participants: Record<
+    string,
+    {
+      name: string;
+      participantElement: Element;
+      videos: Array<HTMLVideoElement>;
+    }
+  > = {};
+
+  const participantElements = findParticipantElements();
   for (const video of videos) {
-    const name = getParticipantNameForVideo(video);
+    const participantEl = findParticipantEl(video);
+    const name =
+      getParticipantNameForVideo(video) ||
+      (participantEl?.querySelector("[data-self-name]") as HTMLElement)?.dataset
+        .selfName;
+    const sourceId =
+      (participantEl.querySelector("[data-ssrc]") as HTMLElement)?.dataset
+        .ssrc || name;
     if (!name) {
       continue;
-    } else if (!participants.hasOwnProperty(name)) {
-      participants[name] = [];
+    } else if (!participants.hasOwnProperty(sourceId)) {
+      participants[sourceId] = {
+        name,
+        participantElement: findParticipantEl(video),
+        videos: [],
+      };
     }
-    participants[name].push(video);
+    participants[sourceId].videos.push(video);
+  }
+
+  for (const participantEl of participantElements) {
+    const nameEl = participantEl.querySelector(
+      "[data-self-name]"
+    ) as HTMLElement;
+    const name = nameEl.innerText?.trim() || nameEl?.dataset?.selfName;
+    const sourceId =
+      (participantEl.querySelector("[data-ssrc]") as HTMLElement)?.dataset
+        .ssrc || name;
+    if (sourceId && !(sourceId in participants)) {
+      participants[sourceId] = {
+        name,
+        participantElement: participantEl,
+        videos: [],
+      };
+    }
   }
 
   const results: Array<Participant> = Object.entries(participants).map(
-    ([name, videos]) => {
+    ([sourceId, { name, participantElement, videos }]) => {
       // A participant is active if they are the one currently in PiP mode.
       const active = videos.some((video) => currentlyShowingPip.has(video));
 
@@ -73,9 +109,11 @@ export function getParticipantsList(): Readonly<Array<Participant>> {
           video.readyState === video.HAVE_ENOUGH_DATA
       );
 
-      const isTalking = videos.some((video) =>
-        findParticipantEl(video)?.querySelector(TALKING_SELECTOR)
-      );
+      const isTalking =
+        !!participantElement?.querySelector(TALKING_SELECTOR) ||
+        videos.some((video) =>
+          findParticipantEl(video)?.querySelector(TALKING_SELECTOR)
+        );
 
       // We assign an identifier to each participant's videos so we can easily
       // query them later. Since the names are unique in this case (can be
@@ -85,9 +123,9 @@ export function getParticipantsList(): Readonly<Array<Participant>> {
         (video) => (video.dataset[ElementDataKey.ParticipantId] = id)
       );
 
-      const isPinned = !videos.some((video) =>
-        findParticipantEl(video)?.matches(".PoIECb")
-      );
+      const isPinned =
+        !videos.some((video) => findParticipantEl(video)?.matches(".PoIECb")) ||
+        participantElement?.matches(".PoIECb");
 
       return {
         id,
@@ -105,8 +143,17 @@ export function getParticipantsList(): Readonly<Array<Participant>> {
   return results;
 }
 
+function findParticipantElements(): Array<Element> {
+  return Array.from(
+    document.querySelectorAll("div[data-requested-participant-id]")
+  );
+}
+
 function findParticipantEl(el): Element | undefined {
-  return findAncestor(el, "div[data-requested-participant-id]");
+  return (
+    findAncestor(el, "div[data-requested-participant-id]") ||
+    el.parentElement.parentElement.parentElement
+  );
 }
 
 function getParticipantNameForVideo(video) {
@@ -122,9 +169,9 @@ function getParticipantNameForVideo(video) {
 export async function activatePictureInPicture(
   participant: Participant
 ): Promise<Participant | false> {
-  const video = participant.videoElements.find(
-    (video) => video.style.display !== "none"
-  );
+  const video =
+    participant.videoElements.find((video) => video.style.display !== "none") ||
+    talkingVideoElement;
 
   if (!video) {
     return;

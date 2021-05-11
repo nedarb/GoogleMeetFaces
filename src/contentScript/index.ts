@@ -9,12 +9,15 @@ import {
   findParticipantToShow,
   getParticipantsList,
 } from "./videoElements";
+import { drawText, hideCanvas, showCanvas } from "./textVideoStream";
 
 console.log("Google Meet Faces startup");
 
 // only run if PiP is enabled
 if (document.pictureInPictureEnabled) {
   const settings = new MemoizedSettings();
+
+  drawText("[Google Meet Faces]");
 
   // make a poller for when the window is hidden
   const poller = new Poller(async () => {
@@ -31,9 +34,12 @@ if (document.pictureInPictureEnabled) {
     }
 
     // get who is talking
+    const participants = getParticipantsList();
+    const talking = participants.find((p) => p.isTalking);
+    drawText(`Talking: ${talking?.name || "?"}`);
     const next = await findParticipantToShow(settings);
-    if (next) {
-      activatePictureInPicture(next);
+    if (next || talking) {
+      activatePictureInPicture(next || talking);
     }
     return true;
   });
@@ -58,7 +64,7 @@ if (document.pictureInPictureEnabled) {
   emit<IContentScript>({
     settingsChanged: async () => {
       const currentlyEnabled = (await settings.getSettings()).isEnabled;
-      const { isEnabled } = await settings.reload();
+      const { isEnabled, debugging } = await settings.reload();
       if (currentlyEnabled !== isEnabled) {
         if (!isEnabled) {
           exitPictureInPicture();
@@ -67,6 +73,8 @@ if (document.pictureInPictureEnabled) {
           poller.start();
         }
       }
+
+      debugging ? showCanvas() : hideCanvas();
     },
     getParticipants: async () => {
       return getParticipantsList();

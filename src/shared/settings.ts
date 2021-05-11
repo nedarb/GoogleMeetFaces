@@ -3,22 +3,26 @@ import { browser } from "webextension-polyfill-ts";
 export enum SettingsKey {
   IS_ENABLED = "isEnabled",
   INCLUDE_YOU = "includeYou",
+  DEBUGGING = "debugging",
 }
 export interface Settings {
   [SettingsKey.INCLUDE_YOU]: boolean;
   [SettingsKey.IS_ENABLED]: boolean;
+  [SettingsKey.DEBUGGING]: boolean;
 }
 
 const defaultSettings: Readonly<Settings> = {
   [SettingsKey.INCLUDE_YOU]: false,
   [SettingsKey.IS_ENABLED]: true,
+  [SettingsKey.DEBUGGING]: false,
 };
 
 export async function loadAllSettings(): Promise<Readonly<Settings>> {
   const keys = Object.values(SettingsKey);
   const settings = await browser.storage.sync.get([...keys]);
-  console.log(`loaded all settnigs: `, settings);
-  return { ...defaultSettings, ...settings };
+  const finalSettings = { ...defaultSettings, ...settings };
+  console.log(`loaded all settnigs: `, finalSettings);
+  return finalSettings;
 }
 
 export function saveSettings(settings: Settings): Promise<void> {
