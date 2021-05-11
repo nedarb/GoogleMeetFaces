@@ -84,16 +84,18 @@ export function getParticipantsList(): Readonly<Array<Participant>> {
     const nameEl = participantEl.querySelector(
       "[data-self-name]"
     ) as HTMLElement;
-    const name = nameEl.innerText?.trim() || nameEl?.dataset?.selfName;
-    const sourceId =
-      (participantEl.querySelector("[data-ssrc]") as HTMLElement)?.dataset
-        .ssrc || name;
-    if (sourceId && !(sourceId in participants)) {
-      participants[sourceId] = {
-        name,
-        participantElement: participantEl,
-        videos: [],
-      };
+    const name = nameEl?.innerText?.trim() || nameEl?.dataset?.selfName;
+    if (name) {
+      const sourceId =
+        (participantEl.querySelector("[data-ssrc]") as HTMLElement)?.dataset
+          .ssrc || name;
+      if (sourceId && !(sourceId in participants)) {
+        participants[sourceId] = {
+          name,
+          participantElement: participantEl,
+          videos: [],
+        };
+      }
     }
   }
 
@@ -143,9 +145,14 @@ export function getParticipantsList(): Readonly<Array<Participant>> {
   return results;
 }
 
+/**
+ * Find all participant elements (excluding the carousel element)
+ */
 function findParticipantElements(): Array<Element> {
   return Array.from(
-    document.querySelectorAll("div[data-requested-participant-id]")
+    document.querySelectorAll(
+      "div[data-requested-participant-id]:not([data-requested-participant-id='carousel'])"
+    )
   );
 }
 
