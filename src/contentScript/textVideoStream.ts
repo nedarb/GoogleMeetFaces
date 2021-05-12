@@ -1,7 +1,7 @@
 import canvasTxt from "canvas-txt";
 
 const width = 320,
-  height = 240;
+  height = width/16*9;
 const canvas = document.createElement("canvas");
 export const video = document.createElement("video");
 // @ts-ignore
@@ -43,7 +43,7 @@ export async function drawText(txt: string) {
   ctx.fillRect(0, 0, width, height);
 
   ctx.fillStyle = "black";
-  canvasTxt.fontSize = 36;
+  canvasTxt.fontSize = 34;
   canvasTxt.font = `'Google Sans',Roboto,Arial,sans-serif`;
 
   canvasTxt.drawText(ctx, txt, 0, 0, width, height);
