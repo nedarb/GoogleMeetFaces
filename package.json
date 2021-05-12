@@ -1,6 +1,6 @@
 {
   "name": "GoogleMeetFaces",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Chrome extension to track Google meet video stream using picture-in-picture",
   "scripts": {
     "build": "npm run sync:version && webpack --config webpack.prod.js",
@@ -29,6 +29,7 @@
     "webpack-merge": "^4.2.2"
   },
   "dependencies": {
+    "canvas-txt": "^3.0.0",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
     "webextension-polyfill-ts": "^0.22.0"

@@ -1,5 +1,5 @@
 import { VisibilityMonitor } from "./VisibilityMonitor";
-import { IContentScript } from "../shared/IContentScript";
+import { ContentScript } from "../shared/ContentScript";
 import { emit } from "../shared/bindings";
 import { MemoizedSettings } from "./MemoizedSettings";
 import { Poller } from "./Poller";
@@ -9,6 +9,7 @@ import {
   findParticipantToShow,
   getParticipantsList,
 } from "./videoElements";
+import { drawText, hideCanvas, showCanvas } from "./textVideoStream";
 
 console.log("Google Meet Faces startup");
 
@@ -16,9 +17,11 @@ console.log("Google Meet Faces startup");
 if (document.pictureInPictureEnabled) {
   const settings = new MemoizedSettings();
 
+  drawText("[Google Meet Faces]");
+
   // make a poller for when the window is hidden
   const poller = new Poller(async () => {
-    const { isEnabled } = await settings.getSettings();
+    const { isEnabled, highlightNoVideo } = await settings.getSettings();
     if (!VisibilityMonitor.isHidden) {
       // stop polling if window is no longer hidden
       return false;
@@ -55,10 +58,10 @@ if (document.pictureInPictureEnabled) {
   });
 
   // expose functionality to the popup/background script
-  emit<IContentScript>({
+  emit<ContentScript>({
     settingsChanged: async () => {
       const currentlyEnabled = (await settings.getSettings()).isEnabled;
-      const { isEnabled } = await settings.reload();
+      const { isEnabled, debugging } = await settings.reload();
       if (currentlyEnabled !== isEnabled) {
         if (!isEnabled) {
           exitPictureInPicture();
@@ -67,6 +70,8 @@ if (document.pictureInPictureEnabled) {
           poller.start();
         }
       }
+
+      debugging ? showCanvas() : hideCanvas();
     },
     getParticipants: async () => {
       return getParticipantsList();

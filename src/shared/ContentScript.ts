@@ -9,7 +9,7 @@ export interface Participant {
   videoElements: Array<HTMLVideoElement>;
 }
 
-export interface IContentScript {
+export interface ContentScript {
   getParticipants(): Promise<Readonly<Array<Participant>>>;
   settingsChanged(): Promise<void>;
 }
