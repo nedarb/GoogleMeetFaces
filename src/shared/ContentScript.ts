@@ -7,6 +7,10 @@ export interface Participant {
   isTalking: boolean;
   isPinned: boolean;
   videoElements: Array<HTMLVideoElement>;
+  /**
+   * Image URL if no video is present
+   */
+  imageUrl?: string;
 }
 
 export interface ContentScript {

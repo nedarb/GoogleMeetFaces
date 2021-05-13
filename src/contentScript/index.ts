@@ -17,6 +17,10 @@ console.log("Google Meet Faces startup");
 if (document.pictureInPictureEnabled) {
   const settings = new MemoizedSettings();
 
+  settings.getSettings().then(({ debugging }) => {
+    debugging ? showCanvas() : hideCanvas();
+  });
+
   drawText("[Google Meet Faces]");
 
   // make a poller for when the window is hidden
