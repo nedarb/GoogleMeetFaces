@@ -23,6 +23,13 @@ const IconPaths = {
   },
 };
 
+console.log(
+  "foobar",
+  __IN_DEBUG__,
+  browser.runtime.getURL("debug.html"),
+  browser.runtime.getURL("js/debug.js")
+);
+
 function getCurrentTabProxy(): Promise<ContentScript | undefined> {
   return browser.tabs
     .query({
@@ -109,11 +116,11 @@ export default function Popup() {
     );
   };
 
-  const toggleSetting = async (key:SettingsKey) => {
+  const toggleSetting = async (key: SettingsKey) => {
     const current = currentSettings[key];
     const next = !current;
     await saveSetting(key, next);
-    setSettings({...currentSettings, [key]: next});
+    setSettings({ ...currentSettings, [key]: next });
     await broadcastSettingChange();
     return next;
   };
@@ -158,7 +165,12 @@ export default function Popup() {
           checked={currentSettings?.debugging}
           onChange={() => toggleSetting(SettingsKey.DEBUGGING)}
         />{" "}
-        Debugging mode
+        Debugging mode{" "}
+        {__IN_DEBUG__ && (
+          <a href={browser.runtime.getURL("debug.html")} target="_blank">
+            (details)
+          </a>
+        )}
       </span>
       <span>
         <input

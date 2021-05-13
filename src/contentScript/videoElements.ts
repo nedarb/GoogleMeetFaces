@@ -142,6 +142,8 @@ export function getParticipantsList(): Readonly<Array<Participant>> {
         !videos.some((video) => findParticipantEl(video)?.matches(".PoIECb")) ||
         participantElement?.matches(".PoIECb");
 
+      const imageUrl = participantElement?.querySelector("img")?.src;
+
       return {
         id,
         name,
@@ -151,6 +153,7 @@ export function getParticipantsList(): Readonly<Array<Participant>> {
         isTalking,
         videoElements: videos,
         isPinned,
+        imageUrl,
       };
     }
   );
@@ -197,7 +200,9 @@ export async function activatePictureInPicture(
     return;
   }
 
-  drawText(`Talking: ${participant.name || "?"}`);
+  drawText(`${participant.name || "?"}`, {
+    image: participant.imageUrl,
+  });
 
   try {
     // short-circuit if already showing this video
