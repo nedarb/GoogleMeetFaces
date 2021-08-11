@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { browser } from "webextension-polyfill-ts";
+import browser from "webextension-polyfill";
 import { bindToTabSendMessage } from "../../shared/bindings";
 import { ContentScript, Participant } from "../../shared/ContentScript";
 import {
@@ -62,8 +62,7 @@ async function broadcastSettingChange() {
   } else {
     const proxies = await getAllTabProxies();
     console.log(
-      `broadcasting settingsChanged to ${proxies.length} Google Meet${
-        proxies.length === 1 ? "" : "s"
+      `broadcasting settingsChanged to ${proxies.length} Google Meet${proxies.length === 1 ? "" : "s"
       }`
     );
     proxies.forEach((proxy) => proxy.settingsChanged());

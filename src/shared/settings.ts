@@ -1,4 +1,4 @@
-import { browser } from "webextension-polyfill-ts";
+import browser from "webextension-polyfill";
 
 export enum SettingsKey {
   IS_ENABLED = "isEnabled",

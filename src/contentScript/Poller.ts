@@ -10,12 +10,12 @@ export class Poller {
     /** a function to run on each timeout, returning true if we should continue polling */
     private readonly fn: (poller: Poller) => Promise<boolean>,
     private readonly duration: number = 1000
-  ) {}
+  ) { }
 
   private async onTimeout() {
     const proceed = await this.fn(this);
     if (proceed) {
-      this.timeoutId = setTimeout(this.onTimeout.bind(this), this.duration);
+      this.timeoutId = window.setTimeout(this.onTimeout.bind(this), this.duration);
     } else {
       this.stop();
     }
